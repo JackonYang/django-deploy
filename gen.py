@@ -1,6 +1,20 @@
 # -*- Encoding: utf-8 -*-
 import argparse
+import codecs
 import os
+
+from jinja2 import Environment, FileSystemLoader
+
+
+TMPL_DIR = './etc-tmpl'
+
+env = Environment(loader=FileSystemLoader(TMPL_DIR))
+
+
+def get_render_list(options):
+    return (
+        ('wsgi.py', 'deploy/wsgi.py'),
+    )
 
 
 def find_settings(django_root, project_name, basename='settings'):
@@ -25,6 +39,13 @@ def find_django_root(project_root, key='manage.py'):
     for dirpath, dirnames, files in os.walk(project_root):
         if key in files:
             return dirpath
+
+
+def render(options):
+    for i, o in get_render_list(options):
+        template = env.get_template(i)
+        with codecs.open(o, 'w', 'utf8') as f:
+            f.write(template.render(**options))
 
 
 def parse_args():
@@ -57,3 +78,5 @@ def parse_args():
 if __name__ == '__main__':
     options = parse_args()
     print(options)
+
+    render(options)
