@@ -1,5 +1,12 @@
 # -*- Encoding: utf-8 -*-
 import argparse
+import os
+
+
+def find_django_root(project_root, key='manage.py'):
+    for dirpath, dirnames, files in os.walk(project_root):
+        if key in files:
+            return dirpath
 
 
 def parse_args():
@@ -17,11 +24,15 @@ def parse_args():
     project_root = args.project
     project_name = project_root.rstrip('/').split('/')[-1]
 
+    django_root = find_django_root(project_root)
+
     return {
         'project_root': project_root,
         'project_name': project_name,
+        'django_root': django_root,
     }
 
 
 if __name__ == '__main__':
-    print(parse_args())
+    options = parse_args()
+    print(options)
