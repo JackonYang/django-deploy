@@ -2,6 +2,7 @@
 import argparse
 import codecs
 import os
+import shutil
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -13,7 +14,7 @@ env = Environment(loader=FileSystemLoader(TMPL_DIR))
 
 def get_render_list(options):
     return (
-        ('wsgi.py', 'deploy/wsgi.py'),
+        ('wsgi.py', options['wsgi-file']),
     )
 
 
@@ -41,6 +42,12 @@ def find_django_root(project_root, key='manage.py'):
             return dirpath
 
 
+def init_dir(path_name):
+    if os.path.exists(path_name):
+        shutil.rmtree(path_name)
+    os.mkdir(path_name)
+
+
 def render(options):
     for i, o in get_render_list(options):
         template = env.get_template(i)
@@ -55,10 +62,15 @@ def parse_args():
         description='1 key to deploy django production server.'
     )
 
-    parser.add_argument("project", type=str,
-                        help="path of target project")
+    parser.add_argument('project', type=str,
+                        help='path of target project')
+    parser.add_argument('-o', '--output', default='deploy',
+                        help='path of output')
 
     args = parser.parse_args()
+
+    deploy_root = args.output
+    init_dir(deploy_root)
 
     project_root = args.project
     project_name = project_root.rstrip('/').split('/')[-1]
@@ -72,6 +84,7 @@ def parse_args():
         'project_name': project_name,
         'django_root': django_root,
         'settings': find_settings(django_root, project_name),
+        'wsgi-file': os.path.join(deploy_root, 'wsgi.py'),
     }
 
 
