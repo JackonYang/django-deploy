@@ -3,6 +3,24 @@ import argparse
 import os
 
 
+def find_settings(django_root, project_name, basename='settings'):
+    normalize_name = project_name.replace('-', '_')
+
+    settings_dirs = [
+        'base',
+        normalize_name,
+        project_name,
+    ]
+    settings_dirs.extend(normalize_name.split('_'))
+
+    for item in settings_dirs:
+        target = os.path.join(django_root, item, '%s.py' % basename)
+        if os.path.exists(target):
+            return '%s.%s' % (item, basename)
+
+    raise ValueError('settings.py not found. django_root=%s' % django_root)
+
+
 def find_django_root(project_root, key='manage.py'):
     for dirpath, dirnames, files in os.walk(project_root):
         if key in files:
@@ -25,11 +43,14 @@ def parse_args():
     project_name = project_root.rstrip('/').split('/')[-1]
 
     django_root = find_django_root(project_root)
+    if not django_root:
+        raise ValueError('django_root not found in %s' % project_root)
 
     return {
         'project_root': project_root,
         'project_name': project_name,
         'django_root': django_root,
+        'settings': find_settings(django_root, project_name),
     }
 
 
