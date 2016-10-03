@@ -96,9 +96,13 @@ def parse_args():
         'django_root': django_root,
         'deploy_root': deploy_root,
         'settings': find_settings(django_root, project_name),
-        'wsgi_file': os.path.abspath(os.path.join(deploy_root, 'wsgi.py')),
         'process_num': args.process_num,
         'socket_file': os.path.abspath(os.path.join(deploy_root, '%s.sock' % project_name)),
+        'static_root': os.path.abspath(os.path.join(django_root, 'static')),
+        'media_root': os.path.abspath(os.path.join(django_root, 'media')),
+        # key files
+        'wsgi_file': os.path.abspath(os.path.join(deploy_root, 'wsgi.py')),
+        'uwsgi_params_file': os.path.abspath(os.path.join(deploy_root, 'nginx/uwsgi_params')),
     }
 
 
