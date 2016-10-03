@@ -13,9 +13,19 @@ env = Environment(loader=FileSystemLoader(TMPL_DIR))
 
 
 def get_render_list(options):
-    return (
-        ('wsgi.py', options['wsgi-file']),
-    )
+    deploy_root = options['deploy_root']
+    if os.path.exists(deploy_root):
+        shutil.rmtree(deploy_root)
+    ensuer_dir(deploy_root)
+
+    for dirpath, dirnames, files in os.walk(TMPL_DIR):
+        relpath = os.path.relpath(dirpath, TMPL_DIR)
+        if relpath != '.':
+            ensuer_dir(os.path.join(deploy_root, relpath))
+        for f in files:
+            if not f.startswith('.'):
+                f = os.path.join(relpath, f)
+                yield f, os.path.join(deploy_root, f)
 
 
 def find_settings(django_root, project_name, basename='settings'):
@@ -42,10 +52,10 @@ def find_django_root(project_root, key='manage.py'):
             return dirpath
 
 
-def init_dir(path_name):
-    if os.path.exists(path_name):
-        shutil.rmtree(path_name)
-    os.mkdir(path_name)
+def ensuer_dir(path_name):
+    if not os.path.exists(path_name):
+        os.mkdir(path_name)
+    return path_name
 
 
 def render(options):
@@ -66,11 +76,12 @@ def parse_args():
                         help='path of target project')
     parser.add_argument('-o', '--output', default='deploy',
                         help='path of output')
+    parser.add_argument('-n', '--process_num', default='4',
+                        help='maximum number of uwsgi worker processes')
 
     args = parser.parse_args()
 
     deploy_root = args.output
-    init_dir(deploy_root)
 
     project_root = args.project
     project_name = project_root.rstrip('/').split('/')[-1]
@@ -83,8 +94,11 @@ def parse_args():
         'project_root': project_root,
         'project_name': project_name,
         'django_root': django_root,
+        'deploy_root': deploy_root,
         'settings': find_settings(django_root, project_name),
-        'wsgi-file': os.path.join(deploy_root, 'wsgi.py'),
+        'wsgi_file': os.path.join(deploy_root, 'wsgi.py'),
+        'process_num': args.process_num,
+        'socket_file': os.path.join(deploy_root, '%s.sock' % project_name),
     }
 
 
