@@ -96,9 +96,9 @@ def parse_args():
         'django_root': django_root,
         'deploy_root': deploy_root,
         'settings': find_settings(django_root, project_name),
-        'wsgi_file': os.path.join(deploy_root, 'wsgi.py'),
+        'wsgi_file': os.path.abspath(os.path.join(deploy_root, 'wsgi.py')),
         'process_num': args.process_num,
-        'socket_file': os.path.join(deploy_root, '%s.sock' % project_name),
+        'socket_file': os.path.abspath(os.path.join(deploy_root, '%s.sock' % project_name)),
     }
 
 
