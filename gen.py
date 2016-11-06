@@ -12,15 +12,11 @@ TMPL_DIR = './etc-tmpl'
 env = Environment(loader=FileSystemLoader(TMPL_DIR))
 
 
-def get_render_list(options):
-    etc_root = options['etc_root']
-    if os.path.exists(etc_root):
-        shutil.rmtree(etc_root)
-    ensuer_dir(etc_root)
-
+def gen_render_list(etc_root):
     for dirpath, dirnames, files in os.walk(TMPL_DIR):
         relpath = os.path.relpath(dirpath, TMPL_DIR)
         if relpath != '.':
+            # ensuer_etc_dir
             ensuer_dir(os.path.join(etc_root, relpath))
         for f in files:
             if not f.startswith('.'):
@@ -58,8 +54,28 @@ def ensuer_dir(path_name):
     return path_name
 
 
+def ensuer_etc_dir(etc_root):
+    if os.path.exists(etc_root):
+        shutil.rmtree(etc_root)
+    ensuer_dir(etc_root)
+
+
+def ensuer_var_dir(var_root):
+    # no remove
+    ensuer_dir(var_root)
+    ensuer_dir(os.path.join(var_root, 'socket'))
+    ensuer_dir(os.path.join(var_root, 'log'))
+
+
 def render(options):
-    for i, o in get_render_list(options):
+
+    etc_root = options['etc_root']
+    ensuer_etc_dir(etc_root)
+
+    var_root = options['var_root']
+    ensuer_var_dir(var_root)
+
+    for i, o in gen_render_list(etc_root):
         template = env.get_template(i)
         with codecs.open(o, 'w', 'utf8') as f:
             f.write(template.render(**options))
@@ -109,7 +125,7 @@ def parse_args():
         'static_root': os.path.abspath(os.path.join(django_root, 'static')),
         'media_root': os.path.abspath(os.path.join(django_root, 'media')),
         # socket files
-        'django_socket_file': 'django_%s.sock' % project_name
+        'django_socket_file': 'socket/django_%s.sock' % project_name
     }
 
 
