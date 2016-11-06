@@ -13,19 +13,19 @@ env = Environment(loader=FileSystemLoader(TMPL_DIR))
 
 
 def get_render_list(options):
-    deploy_root = options['deploy_root']
-    if os.path.exists(deploy_root):
-        shutil.rmtree(deploy_root)
-    ensuer_dir(deploy_root)
+    etc_root = options['etc_root']
+    if os.path.exists(etc_root):
+        shutil.rmtree(etc_root)
+    ensuer_dir(etc_root)
 
     for dirpath, dirnames, files in os.walk(TMPL_DIR):
         relpath = os.path.relpath(dirpath, TMPL_DIR)
         if relpath != '.':
-            ensuer_dir(os.path.join(deploy_root, relpath))
+            ensuer_dir(os.path.join(etc_root, relpath))
         for f in files:
             if not f.startswith('.'):
                 f = os.path.join(relpath, f)
-                yield f, os.path.join(deploy_root, f)
+                yield f, os.path.join(etc_root, f)
 
 
 def find_settings(django_root, project_name, basename='settings'):
@@ -68,49 +68,57 @@ def render(options):
 def parse_args():
     parser = argparse.ArgumentParser(
         prog='django-deploy',
-        usage='./gen.py',
-        description='1 key to deploy django production server.'
+        usage='python gen.py [options] path/to/django/project/',
+        description='generate etc files for deploying'
     )
 
-    parser.add_argument('project', type=str,
+    parser.add_argument('project_path', type=str,
                         help='path of target project')
     parser.add_argument('-d', '--domain', default='jackon.me',
                         help='domain name')
-    parser.add_argument('-o', '--output', default='deploy',
-                        help='path of output')
+    parser.add_argument('-e', '--etc', default='deploy_etc',
+                        help='path of deploy etc')
+    parser.add_argument('-p', '--var', default='var',
+                        help='path of var files')
     parser.add_argument('-n', '--process_num', default='4',
                         help='maximum number of uwsgi worker processes')
 
     args = parser.parse_args()
 
-    deploy_root = args.output
+    # make sure that every path is abspath without '/' suffix
+    project_root = os.path.abspath(args.project_path).rstrip('/')
+    etc_root = os.path.abspath(args.etc).rstrip('/')
+    var_root = os.path.abspath(args.var).rstrip('/')
 
-    project_root = args.project
-    project_name = project_root.rstrip('/').split('/')[-1]
-
-    django_root = find_django_root(project_root)
+    django_root = os.path.abspath(find_django_root(project_root)).rstrip('/')
     if not django_root:
         raise ValueError('django_root not found in %s' % project_root)
+
+    project_name = project_root.rstrip('/').split('/')[-1]
 
     return {
         'project_root': project_root,
         'project_name': project_name,
         'django_root': django_root,
-        'deploy_root': deploy_root,
+        'etc_root': etc_root,
+        'var_root': var_root,
         'settings': find_settings(django_root, project_name),
         'domain': args.domain,
         'process_num': args.process_num,
-        'socket_file': os.path.abspath(os.path.join(deploy_root, '%s.sock' % project_name)),
+        # static and media files
         'static_root': os.path.abspath(os.path.join(django_root, 'static')),
         'media_root': os.path.abspath(os.path.join(django_root, 'media')),
-        # key files
-        'wsgi_file': os.path.abspath(os.path.join(deploy_root, 'wsgi.py')),
-        'uwsgi_params_file': os.path.abspath(os.path.join(deploy_root, 'nginx/uwsgi_params')),
+        # socket files
+        'django_socket_file': 'django_%s.sock' % project_name
     }
 
 
 if __name__ == '__main__':
     options = parse_args()
-    print(options)
+
+    print '-' * 20, ' options ', '-' * 20
+    for k, v in options.items():
+        print '%s: %s' % (k, v)
+    print '-' * 49
 
     render(options)
